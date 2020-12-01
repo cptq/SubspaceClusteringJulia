@@ -18,24 +18,6 @@ from sklearn.utils import check_random_state, check_array, check_symmetric
 class SelfRepresentation(BaseEstimator, ClusterMixin):
     """Base class for self-representation based subspace clustering.
 
-    Parameters
-    -----------
-    n_clusters : integer, optional, default: 8
-        Number of clusters in the dataset.
-    affinity : string, optional, 'symmetrize' or 'nearest_neighbors', default 'symmetrize'
-        The strategy for constructing affinity_matrix_ from representation_matrix_.
-        If ``symmetrize``, then affinity_matrix_ is set to be
-    		|representation_matrix_| + |representation_matrix_|^T.
-		If ``nearest_neighbors``, then the affinity_matrix_ is the k nearest
-		    neighbor graph for the rows of representation_matrix_
-    random_state : int, RandomState instance or None, optional, default: None
-        This is the random_state parameter for k-means. 
-    n_init : int, optional, default: 10
-        This is the n_init parameter for k-means. 
-    n_jobs : int, optional, default: 1
-        The number of parallel jobs to run.
-        If ``-1``, then the number of jobs is set to the number of CPU cores.
-
     Attributes
     ----------
     representation_matrix_ : array-like, shape (n_samples, n_samples)
@@ -192,62 +174,7 @@ def active_support_elastic_net(X, y, alpha, tau=1.0, algorithm='spams', support_
 def elastic_net_subspace_clustering(X, gamma=50.0, gamma_nz=True, tau=1.0, algorithm='lasso_lars', 
                                     active_support=True, active_support_params=None, n_nonzero=50):
     """Elastic net subspace clustering (EnSC) [1]. 
-    Compute self-representation matrix C from solving the following optimization problem
-    min_{c_j} tau ||c_j||_1 + (1-tau)/2 ||c_j||_2^2 + alpha / 2 ||x_j - c_j X ||_2^2 s.t. c_jj = 0,
-    where c_j and x_j are the j-th rows of C and X, respectively.
-	
-	Parameter ``algorithm`` specifies the algorithm for solving the optimization problem.
-	``lasso_lars`` and ``lasso_cd`` are algorithms implemented in sklearn, 
-    ``spams`` refers to the same algorithm as ``lasso_lars`` but is implemented in 
-	spams package available at http://spams-devel.gforge.inria.fr/ (installation required)
-    In principle, all three algorithms give the same result.	
-    For large scale data (e.g. with > 5000 data points), use any of these algorithms in
-	conjunction with ``active_support=True``. It adopts an efficient active support 
-	strategy that solves the optimization problem by breaking it into a sequence of 
-    small scale optimization problems as described in [1].
-
-    If tau = 1.0, the method reduces to sparse subspace clustering with basis pursuit (SSC-BP) [2].
-    If tau = 0.0, the method reduces to least squares regression (LSR) [3].
-	Note: ``lasso_lars`` and ``lasso_cd`` only support tau = 1.
-
-    Parameters
-    -----------
-    X : array-like, shape (n_samples, n_features)
-        Input data to be clustered
-    gamma : float
-    gamma_nz : boolean, default True
-        gamma and gamma_nz together determines the parameter alpha. When ``gamma_nz = False``, 
-        alpha = gamma. When ``gamma_nz = True``, then alpha = gamma * alpha0, where alpha0 is 
-        the largest number such that the solution to the optimization problem with alpha = alpha0
-		is the zero vector (see Proposition 1 in [1]). Therefore, when ``gamma_nz = True``, gamma
-        should be a value greater than 1.0. A good choice is typically in the range [5, 500].	
-    tau : float, default 1.0
-        Parameter for elastic net penalty term. 
-        When tau = 1.0, the method reduces to sparse subspace clustering with basis pursuit (SSC-BP) [2].
-        When tau = 0.0, the method reduces to least squares regression (LSR) [3].
-    algorithm : string, default ``lasso_lars``
-        Algorithm for computing the representation. Either lasso_lars or lasso_cd or spams 
-        (installation of spams package is required).
-        Note: ``lasso_lars`` and ``lasso_cd`` only support tau = 1.
-    n_nonzero : int, default 50
-        This is an upper bound on the number of nonzero entries of each representation vector. 
-        If there are more than n_nonzero nonzero entries,  only the top n_nonzero number of
-        entries with largest absolute value are kept.
-    active_support: boolean, default True
-        Set to True to use the active support algorithm in [1] for solving the optimization problem.
-        This should significantly reduce the running time when n_samples is large.
-    active_support_params: dictionary of string to any, optional
-        Parameters (keyword arguments) and values for the active support algorithm. It may be
-        used to set the parameters ``support_init``, ``support_size`` and ``maxiter``, see
-        ``active_support_elastic_net`` for details. 
-        Example: active_support_params={'support_size':50, 'maxiter':100}
-        Ignored when ``active_support=False``
-	
-    Returns
-    -------
-    representation_matrix_ : csr matrix, shape: n_samples by n_samples
-        The self-representation matrix.
-	
+    	
     References
     -----------	
 	[1] C. You, C.-G. Li, D. Robinson, R. Vidal, Oracle Based Active Set Algorithm for Scalable Elastic Net Subspace Clustering, CVPR 2016
@@ -293,7 +220,6 @@ def elastic_net_subspace_clustering(X, gamma=50.0, gamma_nz=True, tau=1.0, algor
 	    	  
         index = np.flatnonzero(c)
         if index.size > n_nonzero:
-        #  warnings.warn("The number of nonzero entries in sparse subspace clustering exceeds n_nonzero")
           index = index[np.argsort(-np.absolute(c[index]))[0:n_nonzero]]
         rows[curr_pos:curr_pos + len(index)] = i
         cols[curr_pos:curr_pos + len(index)] = index
@@ -307,72 +233,7 @@ def elastic_net_subspace_clustering(X, gamma=50.0, gamma_nz=True, tau=1.0, algor
 
 class ElasticNetSubspaceClustering(SelfRepresentation):
     """Elastic net subspace clustering (EnSC) [1]. 
-    This is a self-representation based subspace clustering method that computes
-    the self-representation matrix C via solving the following elastic net problem
-    min_{c_j} tau ||c_j||_1 + (1-tau)/2 ||c_j||_2^2 + alpha / 2 ||x_j - c_j X ||_2^2 s.t. c_jj = 0,
-    where c_j and x_j are the j-th rows of C and X, respectively.
-	
-	Parameter ``algorithm`` specifies the algorithm for solving the optimization problem.
-	``lasso_lars`` and ``lasso_cd`` are algorithms implemented in sklearn, 
-    ``spams`` refers to the same algorithm as ``lasso_lars`` but is implemented in 
-	spams package available at http://spams-devel.gforge.inria.fr/ (installation required)
-    In principle, all three algorithms give the same result.	
-    For large scale data (e.g. with > 5000 data points), use any of these algorithms in
-	conjunction with ``active_support=True``. It adopts an efficient active support 
-	strategy that solves the optimization problem by breaking it into a sequence of 
-    small scale optimization problems as described in [1].
-
-    If tau = 1.0, the method reduces to sparse subspace clustering with basis pursuit (SSC-BP) [2].
-    If tau = 0.0, the method reduces to least squares regression (LSR) [3].
-	Note: ``lasso_lars`` and ``lasso_cd`` only support tau = 1.
-
-    Parameters
-    -----------
-    n_clusters : integer, optional, default: 8
-        Number of clusters in the dataset.
-    random_state : int, RandomState instance or None, optional, default: None
-        This is the random_state parameter for k-means.
-    affinity : string, optional, 'symmetrize' or 'nearest_neighbors', default 'symmetrize'
-        The strategy for constructing affinity_matrix_ from representation_matrix_.		
-    n_init : int, optional, default: 10
-        This is the n_init parameter for k-means. 
-    gamma : float
-    gamma_nz : boolean, default True
-        gamma and gamma_nz together determines the parameter alpha. If gamma_nz = False, then
-        alpha = gamma. If gamma_nz = True, then alpha = gamma * alpha0, where alpha0 is the largest 
-        number that the solution to the optimization problem with alpha = alpha0 is zero vector
-        (see Proposition 1 in [1]). 
-    tau : float, default 1.0
-        Parameter for elastic net penalty term. 
-        When tau = 1.0, the method reduces to sparse subspace clustering with basis pursuit (SSC-BP) [2].
-        When tau = 0.0, the method reduces to least squares regression (LSR) [3].
-    algorithm : string, default ``lasso_lars``
-        Algorithm for computing the representation. Either lasso_lars or lasso_cd or spams 
-        (installation of spams package is required).
-        Note: ``lasso_lars`` and ``lasso_cd`` only support tau = 1.
-    active_support: boolean, default True
-        Set to True to use the active support algorithm in [1] for solving the optimization problem.
-        This should significantly reduce the running time when n_samples is large.
-    active_support_params: dictionary of string to any, optional
-        Parameters (keyword arguments) and values for the active support algorithm. It may be
-        used to set the parameters ``support_init``, ``support_size`` and ``maxiter``, see
-        ``active_support_elastic_net`` for details. 
-        Example: active_support_params={'support_size':50, 'maxiter':100}
-        Ignored when ``active_support=False``
-    n_nonzero : int, default 50
-        This is an upper bound on the number of nonzero entries of each representation vector. 
-        If there are more than n_nonzero nonzero entries,  only the top n_nonzero number of
-        entries with largest absolute value are kept.
-		
-    Attributes
-    ----------
-    representation_matrix_ : array-like, shape (n_samples, n_samples)
-        Self-representation matrix. Available only if after calling
-        ``fit`` or ``fit_self_representation``.
-    labels_ :
-        Labels of each point. Available only if after calling ``fit``
-
-    References
+       References
     -----------	
 	[1] C. You, C.-G. Li, D. Robinson, R. Vidal, Oracle Based Active Set Algorithm for Scalable Elastic Net Subspace Clustering, CVPR 2016
 	[2] E. Elhaifar, R. Vidal, Sparse Subspace Clustering: Algorithm, Theory, and Applications, TPAMI 2013
