@@ -2,7 +2,6 @@
 # https://github.com/ChongYou/subspace-clustering
 # MIT License
 import warnings
-import math
 import numpy as np
 import spams
 import time
@@ -15,7 +14,6 @@ from sklearn.linear_model import orthogonal_mp
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import normalize
 from sklearn.utils import check_random_state, check_array, check_symmetric
-
 
 class SelfRepresentation(BaseEstimator, ClusterMixin):
     """Base class for self-representation based subspace clustering.
@@ -394,108 +392,6 @@ class ElasticNetSubspaceClustering(SelfRepresentation):
     
     def _self_representation(self, X):
         self.representation_matrix_ = elastic_net_subspace_clustering(X, self.gamma, self.gamma_nz, 
-                                                                      self.tau, self.algorithm, 
-		                                                              self.active_support, self.active_support_params, 
-		                                                              self.n_nonzero)
-					
-
-def sparse_subspace_clustering_orthogonal_matching_pursuit(X, n_nonzero=10, thr=1.0e-6):
-    """Sparse subspace clustering by orthogonal matching pursuit (SSC-OMP)
-    Compute self-representation matrix C by solving the following optimization problem
-    min_{c_j} ||x_j - c_j X ||_2^2 s.t. c_jj = 0, ||c_j||_0 <= n_nonzero
-    via OMP, where c_j and x_j are the j-th rows of C and X, respectively
-
-    Parameters
-    -----------
-    X : array-like, shape (n_samples, n_features)
-        Input data to be clustered
-    n_nonzero : int, default 10
-        Termination condition for omp.
-    thr : float, default 1.0e-5
-        Termination condition for omp.	
-
-    Returns
-    -------
-    representation_matrix_ : csr matrix, shape: n_samples by n_samples
-        The self-representation matrix.
-	
-    References
-    -----------			
-    C. You, D. Robinson, R. Vidal, Scalable Sparse Subspace Clustering by Orthogonal Matching Pursuit, CVPR 2016
-    """	
-    n_samples = X.shape[0]
-    rows = np.zeros(n_samples * n_nonzero, dtype = int)
-    cols = np.zeros(n_samples * n_nonzero, dtype = int)
-    vals = np.zeros(n_samples * n_nonzero)
-    curr_pos = 0
- 
-    for i in range(n_samples):
-        residual = X[i, :].copy()  # initialize residual
-        supp = np.empty(shape=(0), dtype = int)  # initialize support
-        residual_norm_thr = np.linalg.norm(X[i, :]) * thr
-        for t in range(n_nonzero):  # for each iteration of OMP  
-            # compute coherence between residuals and X     
-            coherence = abs( np.matmul(residual, X.T) )
-            coherence[i] = 0.0
-            # update support
-            supp = np.append(supp, np.argmax(coherence))
-            # compute coefficients
-            c = np.linalg.lstsq( X[supp, :].T, X[i, :].T, rcond=None)[0]
-            # compute residual
-            residual = X[i, :] - np.matmul(c.T, X[supp, :])
-            # check termination
-            if np.sum(residual **2) < residual_norm_thr:
-                break
-
-        rows[curr_pos:curr_pos + len(supp)] = i
-        cols[curr_pos:curr_pos + len(supp)] = supp
-        vals[curr_pos:curr_pos + len(supp)] = c
-        curr_pos += len(supp)
-
-#   affinity = sparse.csr_matrix((vals, (rows, cols)), shape=(n_samples, n_samples)) + sparse.csr_matrix((vals, (cols, rows)), shape=(n_samples, n_samples))
-    return sparse.csr_matrix((vals, (rows, cols)), shape=(n_samples, n_samples))
-					
-
-class SparseSubspaceClusteringOMP(SelfRepresentation):
-    """Sparse subspace clustering by orthogonal matching pursuit (SSC-OMP). 
-    This is a self-representation based subspace clustering method that computes
-    the self-representation matrix C via solving the following problem
-    min_{c_j} ||x_j - c_j X ||_2^2 s.t. c_jj = 0, ||c_j||_0 <= n_nonzero
-    via OMP, where c_j and x_j are the j-th rows of C and X, respectively
-
-    Parameters
-    -----------
-    n_clusters : integer, optional, default: 8
-        Number of clusters in the dataset.
-    affinity : string, optional, 'symmetrize' or 'nearest_neighbors', default 'symmetrize'
-        The strategy for constructing affinity_matrix_ from representation_matrix_.
-    random_state : int, RandomState instance or None, optional, default: None
-        This is the random_state parameter for k-means. 
-    n_init : int, optional, default: 10
-        This is the n_init parameter for k-means. 
-    n_nonzero : int, default 10
-        Termination condition for omp.
-    thr : float, default 1.0e-5
-        Termination condition for omp.	
-	
-    Attributes
-    ----------
-    representation_matrix_ : array-like, shape (n_samples, n_samples)
-        Self-representation matrix. Available only if after calling
-        ``fit`` or ``fit_self_representation``.
-    labels_ :
-        Labels of each point. Available only if after calling ``fit``
-
-    References
-    -----------	
-    C. You, D. Robinson, R. Vidal, Scalable Sparse Subspace Clustering by Orthogonal Matching Pursuit, CVPR 2016
-    """
-    def __init__(self, n_clusters=8, affinity='symmetrize', random_state=None, n_init=10, n_jobs=1, n_nonzero=10, thr=1.0e-6):
-        self.n_nonzero = n_nonzero
-        self.thr = thr
-        SelfRepresentation.__init__(self, n_clusters, affinity, random_state, n_init, n_jobs)
-    
-    def _self_representation(self, X):
-        self.representation_matrix_ = sparse_subspace_clustering_orthogonal_matching_pursuit(X, self.n_nonzero, self.thr)
-
-
+                                          self.tau, self.algorithm, 
+                                          self.active_support, self.active_support_params,
+                                          self.n_nonzero)	

@@ -100,19 +100,6 @@ function ensc(X::AbstractMatrix, γ::Number, τ::Number=1; algorithm::AbstractSt
 	return scipyCSC_to_julia(C)
 end
 
-function call_ssc_omp(X::AbstractMatrix, kmax::Int; ϵ::Number=1e-7)
-	""" Calls python implementation of SSC OMP
-	"""
-	sr = pyimport("selfrepresentation")
-	model = sr.SparseSubspaceClusteringOMP(n_nonzero=kmax, thr=ϵ)
-	model.fit_self_representation(transpose(X))
-	C = model.representation_matrix_
-	model._representation_to_affinity()
-	A = model.affinity_matrix_
-	return scipyCSC_to_julia(C), scipyCSC_to_julia(A)
-end
-
-
 function jdssc(X::AbstractMatrix, η1::Number, η2::Number; niters::Int=2000, ρ::Number=.5, ϵ::Number=1e-8, verbose::Bool=true, τ1::Number=0.0001, η3::Number=0.0)
 	""" J-DSSC model from 'Doubly Stochastic Subspace Clustering'
 	"""
