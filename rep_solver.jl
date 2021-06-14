@@ -226,7 +226,7 @@ function ot_q_dual(K::Union{AbstractMatrix, SparseMatrixCSC}, γ::Number; verbos
 end
 
 
-function adssc(X::AbstractMatrix, η1::Number, η2::Number; η3::Number=0.0)
+function adssc(X::AbstractMatrix, η1::Number, η2::Number; η3::Number=0.0, return_C::Bool=false)
 	""" A-DSSC model from 'Doubly Stochastic Subspace Clustering'
 	"""
 	if η3 < 1e-8 # no l1 regularization
@@ -237,6 +237,11 @@ function adssc(X::AbstractMatrix, η1::Number, η2::Number; η3::Number=0.0)
 		C = ensc(X, ensc_gamma, ensc_tau)
 	end
 	A = ot_q_dual(abs.(C), η2)
+
+	if return_C
+		return A, C
+	end
+
 	return A
 end
 
